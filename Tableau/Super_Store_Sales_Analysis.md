@@ -6,7 +6,7 @@ This project is a comprehensive **sales analysis dashboard** built using **Table
 
 ## 📸 Dashboard Preview
 
-![Superstore Dashboard](./98e00623-ae68-4d6b-b180-af05ea5611aa.png)
+![Superstore Dashboard](https://github.com/Satyam22iitk/GFG_PROJECTS/blob/main/Tableau/Screenshot%202025-07-06%20234204.png))
 
 ---
 
