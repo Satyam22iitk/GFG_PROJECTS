@@ -6,9 +6,8 @@ This project presents a dynamic **COVID-19 data dashboard** built using **Tablea
 
 ## 📸 Dashboard Preview
 
-> *(Sample placeholder image – replace with actual COVID-19 dashboard screenshot if available)*
 
-![COVID-19 Dashboard](./98e00623-ae68-4d6b-b180-af05ea5611aa.png)
+![COVID-19 Dashboard](https://github.com/Satyam22iitk/GFG_PROJECTS/blob/main/Tableau/Covid19/Screenshot%202025-07-06%20235148.png)
 
 ---
 
