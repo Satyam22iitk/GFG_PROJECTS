@@ -1,0 +1,120 @@
+--sales analysis
+WITH MonthlySales AS (
+    -- First, calculate the total sales for each individual order
+    SELECT
+        O.OrderID,
+        O.OrderDate,
+        P.Category,
+        SUM(OD.Quantity * OD.UnitPrice) AS TotalSales
+    FROM
+        Orders AS O
+    JOIN
+        OrderDetails AS OD ON O.OrderID = OD.OrderID
+    JOIN
+        Products AS P ON OD.ProductID = P.ProductID
+    GROUP BY
+        O.OrderID, O.OrderDate, P.Category
+)
+-- Now, aggregate the monthly data
+SELECT
+    -- Format the OrderDate to 'YYYY-MM' to group by month
+    FORMAT(OrderDate, 'yyyy-MM') AS SalesMonth,
+    Category,
+    SUM(TotalSales) AS TotalSalesAmount,
+    COUNT(DISTINCT OrderID) AS NumberOfOrders,
+    AVG(TotalSales) AS AverageOrderValue
+FROM
+    MonthlySales
+GROUP BY
+    FORMAT(OrderDate, 'yyyy-MM'),
+    Category
+ORDER BY
+    SalesMonth DESC,
+    TotalSalesAmount DESC;
+
+
+
+
+--customer segmentation
+
+WITH CustomerData AS (
+    -- Get the last order date, order count, and total spend for each customer
+    SELECT
+        CustomerID,
+        MAX(OrderDate) AS LastOrderDate,
+        COUNT(DISTINCT OrderID) AS Frequency,
+        SUM(TotalAmount) AS Monetary
+    FROM
+        Orders
+    GROUP BY
+        CustomerID
+),
+RFM_Scores AS (
+    -- Calculate Recency (days since last purchase)
+    -- and assign scores from 1-5 for R, F, and M
+    SELECT
+        CustomerID,
+        -- Calculate days since last order (assuming '2025-10-23' is today)
+        DATEDIFF(day, LastOrderDate, '2025-10-23') AS Recency,
+        Frequency,
+        Monetary,
+        -- Use NTILE() window function to create 5 equal-sized groups (quintiles)
+        -- For Recency, lower is better (so we sort ASC)
+        NTILE(5) OVER (ORDER BY DATEDIFF(day, LastOrderDate, '2025-10-23') ASC) AS R_Score,
+        -- For Frequency and Monetary, higher is better (so we sort DESC)
+        NTILE(5) OVER (ORDER BY COUNT(DISTINCT OrderID) DESC) AS F_Score,
+        NTILE(5) OVER (ORDER BY SUM(TotalAmount) DESC) AS M_Score
+    FROM
+        Orders
+    GROUP BY
+        CustomerID, LastOrderDate
+)
+-- Assign human-readable segments based on the scores
+SELECT
+    CustomerID,
+    Recency,
+    Frequency,
+    Monetary,
+    R_Score,
+    F_Score,
+    M_Score,
+    -- Concatenate scores to create a combined RFM score
+    CAST(R_Score AS varchar) + CAST(F_Score AS varchar) + CAST(M_Score AS varchar) AS RFM_Score,
+    -- Use CASE statements for segmentation logic
+    CASE
+        WHEN R_Score >= 4 AND F_Score >= 4 AND M_Score >= 4 THEN 'Best Customers'
+        WHEN R_Score >= 3 AND F_Score >= 3 THEN 'Loyal Customers'
+        WHEN R_Score <= 2 AND F_Score >= 3 THEN 'At Risk Customers'
+        WHEN R_Score <= 2 AND F_Score <= 2 THEN 'Lost Customers'
+        WHEN R_Score = 5 AND F_Score = 1 AND M_Score = 1 THEN 'New Customers'
+        ELSE 'Regular Customers'
+    END AS CustomerSegment
+FROM
+    RFM_Scores
+ORDER BY
+    CustomerSegment,
+    Monetary DESC;
+
+
+--sentiment analysis
+
+-- Assume you have a 'Reviews' table with:
+-- ReviewID, ProductID, ReviewText, SentimentScore (e.g., -1 to 1)
+
+-- Calculate average sentiment and negative review rate per category
+SELECT
+    P.Category,
+    AVG(R.SentimentScore) AS AverageSentimentScore,
+    
+    -- Calculate the percentage of negative reviews (score < 0)
+    SUM(CASE WHEN R.SentimentScore < 0 THEN 1 ELSE 0 END) * 100.0 / COUNT(R.ReviewID) AS NegativeReviewPercentage,
+    
+    COUNT(R.ReviewID) AS TotalReviews
+FROM
+    Reviews AS R
+JOIN
+    Products AS P ON R.ProductID = P.ProductID
+GROUP BY
+    P.Category
+ORDER BY
+    AverageSentimentScore ASC; -- Show worst-performing categories first
